@@ -1,0 +1,26 @@
+# Ignore build files
+*.obj
+*.exe
+*.pdb
+*.dll
+*.lib
+*.ilk
+*.log
+*.tlog
+*.pch
+*.idb
+*.ipch
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.VC.opendb
+
+# Ignore Visual Studio folders
+.vs/
+Debug/
+Release/
+
+# Python
+__pycache__/
+*.pyc
+.env/
