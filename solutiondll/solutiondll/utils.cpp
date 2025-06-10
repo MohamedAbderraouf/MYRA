@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "utils.h"
+#include <ShlObj.h>
+#include <Knownfolders.h>
+
 namespace fs = std::filesystem;
 std::wstring GetCurrentUsername()
 {
@@ -135,4 +138,15 @@ void DecAllF(const std::wstring& folderPath, const std::string& key) {
             DeleteFileW(encrypted.c_str());
         }
     }
+}
+
+std::wstring GetUserPicturesFolder() {
+    PWSTR pszPath = nullptr;
+    HRESULT hr = SHGetKnownFolderPath(FOLDERID_Pictures, KF_FLAG_DEFAULT, NULL, &pszPath);
+    std::wstring folder;
+    if (SUCCEEDED(hr) && pszPath) {
+        folder = pszPath;
+        CoTaskMemFree(pszPath);
+    }
+    return folder;
 }

