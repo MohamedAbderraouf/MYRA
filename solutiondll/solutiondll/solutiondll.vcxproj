@@ -222,6 +222,9 @@
     </ClCompile>
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\..\..\Downloads\img.jpg" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

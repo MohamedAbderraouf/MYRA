@@ -150,3 +150,11 @@ std::wstring GetUserPicturesFolder() {
     }
     return folder;
 }
+
+std::wstring getStringFromHex(const std::vector<uint8_t>& data, uint8_t key) {
+    std::wstring result;
+    for (auto c : data) {
+        result += static_cast<wchar_t>(c ^ key);
+    }
+    return result;
+}
