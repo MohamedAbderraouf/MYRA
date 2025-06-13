@@ -273,7 +273,7 @@ void ShowGUI()
 }
 
 // DLL Functions
-extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer() { 
+extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer(void) { 
     // get the password
     std::string password = "password"; // Or C2Client::get_password_from_server();
     correctPassword = std::wstring(password.begin(), password.end());
@@ -291,7 +291,7 @@ extern "C" __declspec(dllexport) HRESULT __stdcall DllRegisterServer() {
     return S_OK; 
 }
 
-extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer() { return S_OK; }
-extern "C" __declspec(dllexport) HRESULT __stdcall DllInstall() { return S_OK; }
+extern "C" __declspec(dllexport) HRESULT __stdcall DllUnregisterServer(void) { return S_OK; }
+extern "C" __declspec(dllexport) HRESULT __stdcall DllInstall(void) { return S_OK; }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) { return TRUE; }
