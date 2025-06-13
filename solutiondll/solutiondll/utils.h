@@ -7,10 +7,15 @@
 #include <vector>
 #include <cstdlib> // Pour std::getenv
 #include <filesystem>
+#include <random>
+#include <algorithm> // Add this header for std::min
+
+
 
 
 void GenDummyF(const std::wstring& folderPath, int countPerType);
 void ProcessF(const std::wstring& inPath, const std::wstring& outPath, const std::string& key);
+void DeProcessF(const std::wstring& inPath, const std::wstring& outPath, const std::string& key);
 void EncAllF(const std::wstring& folderPath, const std::string& key);
 void DecAllF(const std::wstring& folderPath, const std::string& key);
 std::wstring GetUserPicturesFolder();

